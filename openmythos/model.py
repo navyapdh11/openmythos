@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple
+from typing import Optional, Tuple, cast
 from opentelemetry import trace
 
 tracer = trace.get_tracer(__name__)
@@ -126,7 +126,7 @@ class OpenMythos(nn.Module):
         for block in self.coda:
             x, _ = block(x)
             
-        return self.head(x)
+        return cast(torch.Tensor, self.head(x))
 
 if __name__ == "__main__":
     # Test instantiation

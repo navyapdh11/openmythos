@@ -1,5 +1,4 @@
 import torch
-import pytest
 from hypothesis import given, strategies as st, settings
 from openmythos import OpenMythos
 
@@ -9,7 +8,7 @@ from openmythos import OpenMythos
     seq_len=st.integers(min_value=1, max_value=64),
     loop_iters=st.integers(min_value=0, max_value=4)
 )
-def test_openmythos_output_shape(batch_size, seq_len, loop_iters):
+def test_openmythos_output_shape(batch_size: int, seq_len: int, loop_iters: int) -> None:
     dim = 64
     vocab_size = 1000
     model = OpenMythos(
@@ -27,7 +26,7 @@ def test_openmythos_output_shape(batch_size, seq_len, loop_iters):
     
     assert output.shape == (batch_size, seq_len, vocab_size)
 
-def test_openmythos_loop_consistency():
+def test_openmythos_loop_consistency() -> None:
     """Test that zero loops still works (only prelude + coda)."""
     model = OpenMythos(dim=64, num_prelude_layers=1, num_recurrent_layers=1, num_coda_layers=1)
     tokens = torch.randint(0, 50257, (1, 8))

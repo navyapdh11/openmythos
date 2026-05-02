@@ -1,4 +1,3 @@
-import pytest
 import torch
 import math
 from openmythos import OpenMythos
@@ -10,7 +9,7 @@ def madhava_leibniz_pi(n_terms: int) -> float:
         pi_sum += ((-1)**k) / (2*k + 1)
     return 4 * pi_sum
 
-def test_recurrent_loop_numerical_accuracy():
+def test_recurrent_loop_numerical_accuracy() -> None:
     """Verify that OpenMythos recurrent loop depth correlates with series approximation accuracy."""
     # Initialize a small OpenMythos model
     model = OpenMythos(dim=64, num_prelude_layers=1, num_recurrent_layers=1, num_coda_layers=1)
