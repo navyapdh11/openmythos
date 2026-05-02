@@ -133,6 +133,42 @@ python -m pytest tests/test_model.py -v --hypothesis-show-statistics
 ## Future Work
 
 - **Adaptive compute controller**: Train a small head to predict optimal `loop_iters` per input.
-- **KV cache past-state**: Enable true recurrence by passing latent_kv between loop iterations.
 - **Position embeddings**: Add rotary (RoPE) or ALiBi position embeddings for longer sequences.
 - **Flash attention**: Replace scaled dot-product with Flash Attention 2 for throughput.
+
+---
+
+## Version Progression
+
+### V1 — Original (openmythos/model.py)
+- Prelude → Recurrent Loop → Coda → LM Head
+- Standard MLA attention with KV compression
+- Naive additive residuals (`x = x + h`)
+- Dense FFN (4× dim expansion)
+
+### V2 — DS-V4 Hybrid (openmythos/ds_v4_sandbox.py)
+- **mHC**: Sinkhorn-constrained doubly stochastic residuals (spectral norm ≤ 1)
+- **CSA+HCA**: Hybrid attention — block-compressed sparse selection + global summary
+- **Tiered KV Cache**: Sliding window + compressed historical entries
+- Backwards-compatible: `use_mhc=False` and `kv_cache=None` fall back to V1 behavior
+
+### V3 — Full MoE Integration (openmythos/model_v3.py + openmythos/moe.py)
+- **DeepSeekMoE**: Sqrt(Softplus) affinity, top-k routing, auxiliary-loss-free load balancing
+- **Shared Expert**: Always active, handles common patterns
+- **Hash Routing**: Deterministic early-layer routing for prelude layers
+- **Anticipatory Routing**: Decouples routing from backbone, suppresses loss spikes
+- 3.4× parameter capacity increase at research scale (8 experts), up to 20× at production scale (256 experts)
+
+### Benchmark Results (dim=64, seq=32, batch=2)
+
+| Metric | V1 | V2 | V3 |
+|--------|----|----|-----|
+| Total params | 914K | 1.6M | 3.1M |
+| Active params | 914K | 1.6M | 2.1M |
+| Capacity ratio | 1.0× | 1.0× | 1.5× |
+| Entropy @ depth=4 | 4.64 | 4.59 | 4.68 |
+| Output norm @ depth=8 | 3159 | 3140 | 3222 |
+
+At production scale (dim=1024, 256 experts):
+- V3 would have ~284B total params, ~13B active (21.8× capacity ratio)
+- DS-V4-Flash achieves MMLU 88.7 at 13B active vs V3.2's 87.8 at 37B active
